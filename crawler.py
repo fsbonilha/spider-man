@@ -19,44 +19,22 @@ def get_list():
         return l
 
 def start_driver():
-    # Defining Chrome Driver Configs
-    chrome_options = Options()
-    #chrome_options.add_argument('--incognito')
-    #chrome_options.add_argument('--window-size=1920x1080')
-    chrome_options.add_argument('--log-level=3')
-    # chrome_options.add_argument("--headless") # Define se a janela do Chrome vai ser invisivel 
+    # Defining Firefox Driver Configs
+    firefox_options = FirefoxOptions()
+    firefox_options.add_argument('--log-level=3')
+    firefox_options.add_argument('--user-data-dir=C:/Users/bonilhfe/AppData/Roaming/Mozilla/Firefox/')
+    firefox_options.add_argument('--width=1600')
+    firefox_options.add_argument('--height=900')
+    
     
     # Opening Chrome instance
-    ser = Service('C:\\chromedriver.exe')
-    driver = webdriver.Chrome(options=chrome_options, service = ser)
-    
+    ser = Service('C:\\geckodriver.exe')
+    driver = webdriver.Chrome(options=firefox_options, service = ser)
     driver.implicitly_wait(IMPLICIT_WAIT)
+    
+    driver.get('https://sclens.corp.amazon.com/')
+    input('Logged In? Press enter to continue...')
     return driver
-
-def login(driver, email, password):
-    
-    driver.get('https://sellercentral.amazon.com.br/')
-    
-    # Tags to find elements in HTML
-    email_el = '#ap_email'
-    pass_el = '#ap_password'
-    submit_el = '#signInSubmit'
-    
-    # Filling email box
-    element = driver.find_element('css selector', email_el)
-    element.clear()
-    element.send_keys(email)
-    
-    # Filling password box
-    element = driver.find_element('css selector', pass_el)
-    element.clear()
-    element.send_keys(password)
-    
-    # Clicking submit button
-    driver.find_element('css selector', submit_el).click()
-    time.sleep(3)
-    driver.find_element('class name', 'picker-switch-accounts-button').click()
-    return
     
 def change_seller(driver, seller_id):
     driver.get('https://sellercentral.amazon.com.br/merchant-picker')
