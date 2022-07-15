@@ -1,9 +1,11 @@
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from datetime import datetime
+from selenium.webdriver import FirefoxOptions
+from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.select import Select
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from datetime import datetime
 import os, csv, sys, time, codecs
 
 # User Variables 
@@ -35,39 +37,89 @@ def start_driver():
     driver.get('https://sclens.corp.amazon.com/')
     input('Logged In? Press enter to continue...')
     return driver
+
+def map_seller(driver, id_list):
+    # Give Permission to access sellers in lens
+    # Limit of 20 sellers per request, so we will split it in batches of 20
+    batches = [id_list[i:i+20] for i in range(0,len(id_list),20)]
     
-def change_seller(driver, seller_id):
-    driver.get('https://sellercentral.amazon.com.br/merchant-picker')
+    for batch in batches:
+        
+        driver.get('https://sclens.corp.amazon.com/user2seller')
+        driver.find_element(By.NAME, 'Request').click()   
+        
+        for id in batch:
+            driver.find_element('css selector', '.scl-table-filter-bar-container .scl-clickable').click()
+            time.sleep(.1)
+        
+        row = 0
+        time.sleep(1)
+        for id in batch:
+            
+            # Using actions to simulate key presses as this form runs with JS 
+            css_tag = 'kat-table-cell:nth-child(1) kat-input'
+            els = driver.find_elements('css selector', css_tag)
+            el = els[row] 
+            driver.execute_script("arguments[0].scrollIntoView();", el)
+            actions = ActionChains(driver)
+            actions.click(on_element=el)    
+            actions.send_keys(id)
+            actions.perform()
+            time.sleep(.05)
+            
+            css_tag = '.scl-self-request-marketplace-column'
+            els = driver.find_elements('css selector', css_tag)
+            el = els[row]
+            actions.click(on_element=el)
+            actions.send_keys('BR')
+            actions.perform()
+            time.sleep(.15)
+            
+            actions.send_keys(Keys.DOWN)
+            actions.send_keys(Keys.RETURN)
+            actions.perform()
+            
+            time.sleep(.1)
+            
+            row = row + 1
+            
+        driver.find_element('css selector', '.scl-upload-button').click() # Submit button
+        time.sleep(1)
     
-    # Inputing seller_id provided
-    tag = '#spoofed-merchantId-input'
-    element = WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located(('css selector', tag))
-    )
-    element.clear()
-    element.send_keys(seller_id)
-    
-    # Clicking search
-    tag = '.a-button-input'
-    driver.find_element('css selector', tag).click()
-    # time.sleep(1)
-    
-    # Trying to find a BR seller in the list
-    tag = 'https://sellercentral.amazon.com.br/merchant-picker/change-merchant?marketplaceId=A2Q3Y263D00KWC'
-    try: 
-        elements = driver.find_elements('xpath', "//a[contains(@href,'"+ tag +"')]")
-    except: 
-        print('Aviso: Problema ao selecionar o seller', seller_id)
-        # append_log(seller_id, 0, '', 'Failed to spoof seller - not found')
-        return False
-    if len(elements) != 1: # Se mais de um ou nenhum seller encontrado -> ERRO
-        print('Aviso: Problema ao selecionar o seller', seller_id)
-        # append_log(seller_id, 0, '', f'Failed to spoof seller - found {len(elements)} results')
-        return False
-    element = elements[0]
-    element.click()
-    # time.sleep(1)
     return True
+
+def change_seller(driver, seller_id):
+    if len(driver.window_handles) > 1:
+        driver.close()
+        # Changes to first tab 
+        driver.switch_to.window(driver.window_handles[0])
+    
+    driver.get('https://sclens.corp.amazon.com/grant' )
+    time.sleep(1)
+    
+    # Using actions to simulate key presses as this form runs with JS 
+    el = driver.find_element('css selector', 'kat-input')
+    actions = ActionChains(driver)
+    actions.click(on_element=el)    
+    actions.send_keys(seller_id)
+    actions.perform()
+    
+    time.sleep(.2)
+    tag = '.scl-grant-page-merchant-search-button kat-button'
+    driver.find_element('css selector', tag).click()
+    time.sleep(.2)
+    
+    driver.execute_script('''document.querySelector('input[value="A2Q3Y263D00KWC"]').click()''')
+    time.sleep(.2)
+    driver.execute_script('''document.querySelector('kat-button[label="Access"]').click()''')
+    time.sleep(.5)
+    
+    # Changing back to original tab 
+    driver.switch_to.window(driver.window_handles[-1])
+    
+    time.sleep(2)
+    
+    return
     
 # Caution: this functions will get address for current seller, please use change_seller(driver, seller_id)
 def get_data(driver, seller_id):
@@ -132,19 +184,23 @@ def export_data(data):
     
 
 def main():
-    driver = start_driver()
-    login(driver, EMAIL, PASSWORD)
-    
+    driver = start_driver()    
     sp_list = get_list()
+    map_seller(driver, sp_list)
+    
     
     # For each merchant_id in the file provided
     for id in sp_list:
         # Selecting specific seller in Spoofer
-       if not change_seller(driver, id): continue
-       data = get_data(driver, id)
-       if not data: continue # If get_data() fails, go to next seller 
-       print(data, '\r\n')
-       export_data(data)
+        try: 
+            change_seller(driver, id)
+        except:
+            print('! Error selecting seller id', id)
+            continue
+        data = get_data(driver, id)
+        if not data: continue # If get_data() fails, go to next seller 
+        print(data, '\r\n')
+        export_data(data)
     return
     
 if __name__ == '__main__': main()
