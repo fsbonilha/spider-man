@@ -4,13 +4,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 from datetime import datetime
 import os, csv, sys, time, codecs
 
 # User Variables 
 CSV_PATH = os.path.join(sys.path[0], ('data_' + datetime.today().strftime('%Y-%m-%d_T%H-%M') + '.csv'))
-IMPLICIT_WAIT = 1 #seconds 
+IMPLICIT_WAIT = 2.0 #seconds 
 
 def get_list():
     # Import seller list from csv file 
@@ -46,7 +48,11 @@ def map_seller(driver, id_list):
     for batch in batches:
         
         driver.get('https://sclens.corp.amazon.com/user2seller')
-        driver.find_element(By.NAME, 'Request').click()   
+        
+        els = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.NAME, 'Request'))
+        )
+        els[0].click()
         
         for id in batch:
             driver.find_element('css selector', '.scl-table-filter-bar-container .scl-clickable').click()
@@ -126,7 +132,7 @@ def get_data(driver, seller_id):
     data = {}
     
     # Business Address
-    driver.get('https://sellercentral.amazon.com.br/sw/AccountInfo/BusinessAddress/step/BusinessAddress')
+    driver.get('https://www.sellercentral.amazon.dev/sw/AccountInfo/BusinessAddress/step/BusinessAddress')
     tag = '.a-label .ng-binding'
     try: 
         els = driver.find_elements('css selector', tag)
@@ -140,7 +146,7 @@ def get_data(driver, seller_id):
     data = dict(zip(names,info))
     
     # Phone and E-mail - Notifications Page
-    driver.get('https://sellercentral.amazon.com.br/notifications/preferences/contacts')
+    driver.get('https://www.sellercentral.amazon.dev/notifications/preferences/contacts')
     tag = '.contact-email'
     try: email=driver.find_elements('css selector', tag)[0].text
     except: email=''
@@ -151,7 +157,7 @@ def get_data(driver, seller_id):
     data['ntf_phone'] = phone 
     
     # Shipment Address
-    driver.get('https://sellercentral.amazon.com.br/sbr/ref=xx_shipset_dnav_xx#settings')
+    driver.get('https://www.sellercentral.amazon.dev/sbr/ref=xx_shipset_dnav_xx#settings')
 
     tag='#addressWidget td'
     try:
