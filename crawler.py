@@ -203,6 +203,8 @@ def main():
         if not data: continue # If get_data() fails, go to next seller 
         print(data, '\r\n')
         export_data(data)
+    
+    driver.close()
     return
     
 if __name__ == '__main__': main()
