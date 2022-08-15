@@ -94,16 +94,11 @@ def map_seller(driver, id_list):
     
     return True
 
-def change_seller(driver, seller_id):
-    if len(driver.window_handles) > 1:
-        driver.close()
-        # Changes to first tab 
-        driver.switch_to.window(driver.window_handles[0])
-    
+def change_seller(driver, seller_id):    
     driver.get('https://sclens.corp.amazon.com/grant' )
     time.sleep(1)
     
-    # Using actions to simulate key presses as this form runs with JS 
+    # Using ActionChains to simulate key presses as this form runs with JS 
     el = driver.find_element('css selector', 'kat-input')
     actions = ActionChains(driver)
     actions.click(on_element=el)    
@@ -120,10 +115,12 @@ def change_seller(driver, seller_id):
     driver.execute_script('''document.querySelector('kat-button[label="Access"]').click()''')
     time.sleep(.5)
     
-    # Changing back to original tab 
-    driver.switch_to.window(driver.window_handles[-1])
     
     time.sleep(2)
+    
+    # Closing popup and changing back to original tab
+    driver.close()
+    driver.switch_to.window(driver.window_handles[0])
     
     return
     
@@ -158,16 +155,15 @@ def get_data(driver, seller_id):
     
     # Shipment Address
     driver.get('https://www.sellercentral.amazon.dev/sbr/ref=xx_shipset_dnav_xx#settings')
-
     tag='#addressWidget td'
     try:
-        els = WebDriverWait(driver, 3).until(
+        els = WebDriverWait(driver, 4).until(
             EC.presence_of_all_elements_located(('css selector', tag))
         )
         info=[el.text for el in els]
     except:
-        info = ['', '', '']
-    names = ['dship_name', 'dship_address', 'dship_time_zone']
+        info = ['', '', '', '']
+    names = ['dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone']
     new = dict(zip(names,info))
     data.update(new)
     data['merchant_id'] = seller_id
@@ -177,7 +173,7 @@ def get_data(driver, seller_id):
 def export_data(data):
     # Take data from one merchant_id and print it to csv 
     columns = ['merchant_id', 'ba_name', 'country', 'zip_code', 'state', 'city', 'ba_line6', 'address_line1', 'address_line2',
-                'ship_phone', 'ba_line10', 'ba_line11', 'ntf_email', 'ntf_phone', 'dship_name', 'dship_address', 'dship_time_zone']
+                'ship_phone', 'ba_line10', 'ba_line11', 'ntf_email', 'ntf_phone', 'dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone']
     file_exists = os.path.isfile(CSV_PATH)
     
     with codecs.open(CSV_PATH, 'a', encoding='utf8') as f:
