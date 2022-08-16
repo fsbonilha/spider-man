@@ -12,6 +12,8 @@ import os, csv, sys, time, codecs
 
 # User Variables 
 CSV_PATH = os.path.join(sys.path[0], ('data_' + datetime.today().strftime('%Y-%m-%d_T%H-%M') + '.csv'))
+PATH_FIREFOX = 'C:/Users/bonilhfe/AppData/Roaming/Mozilla/Firefox/'
+PATH_GECKODRIVER = 'C:\\geckodriver.exe'
 IMPLICIT_WAIT = 2.0 #seconds 
 
 def get_list():
@@ -26,18 +28,17 @@ def start_driver():
     # Defining Firefox Driver Configs
     firefox_options = FirefoxOptions()
     firefox_options.add_argument('--log-level=3')
-    firefox_options.add_argument('--user-data-dir=C:/Users/bonilhfe/AppData/Roaming/Mozilla/Firefox/')
+    firefox_options.add_argument('--user-data-dir={}'.format(PATH_FIREFOX))
     firefox_options.add_argument('--width=1600')
-    firefox_options.add_argument('--height=900')
+    firefox_options.add_argument('--height=900')    
     
-    
-    # Opening Chrome instance
-    ser = Service('C:\\geckodriver.exe')
+    # Opening Firefox instance
+    ser = Service(PATH_GECKODRIVER)
     driver = webdriver.Chrome(options=firefox_options, service = ser)
     driver.implicitly_wait(IMPLICIT_WAIT)
     
     driver.get('https://sclens.corp.amazon.com/')
-    input('Logged In? Press enter to continue...')
+    input('Logged In? Press enter to continue...\r\n')
     return driver
 
 def map_seller(driver, id_list):
@@ -65,7 +66,7 @@ def map_seller(driver, id_list):
             # Using actions to simulate key presses as this form runs with JS 
             css_tag = 'kat-table-cell:nth-child(1) kat-input'
             els = driver.find_elements('css selector', css_tag)
-            el = els[row] 
+            el = els[row]
             driver.execute_script("arguments[0].scrollIntoView();", el)
             actions = ActionChains(driver)
             actions.click(on_element=el)    
@@ -157,7 +158,7 @@ def get_data(driver, seller_id):
     driver.get('https://www.sellercentral.amazon.dev/sbr/ref=xx_shipset_dnav_xx#settings')
     tag='#addressWidget td'
     try:
-        els = WebDriverWait(driver, 4).until(
+        els = WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located(('css selector', tag))
         )
         info=[el.text for el in els]
@@ -183,7 +184,34 @@ def export_data(data):
         writer.writerow(data)
     return 
 
+def map_only():
+    driver = start_driver()    
+    sp_list = get_list()
+    map_seller(driver, sp_list)
     
+    driver.close()
+    return
+
+def data_only():
+    driver = start_driver()    
+    sp_list = get_list()
+    
+    # For each merchant_id in the file provided
+    for id in sp_list:
+        # Selecting specific seller in Spoofer
+        try: 
+            change_seller(driver, id)
+        except:
+            print('! Error selecting seller id', id)
+            continue
+        data = get_data(driver, id)
+        if not data: continue # If get_data() fails, go to next seller 
+        print(data, '\r\n')
+        export_data(data)
+    
+    driver.close()
+    return
+  
 
 def main():
     driver = start_driver()    
