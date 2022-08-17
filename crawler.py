@@ -122,6 +122,10 @@ def change_seller(driver, seller_id):
     time.sleep(2)
     
     # Closing popup and changing back to original tab
+    
+    if len(driver.window_handles) <= 1:
+        raise Exception('SCLens failed to grant permission')
+    
     driver.close()
     driver.switch_to.window(driver.window_handles[0])
     
@@ -215,7 +219,9 @@ def data_only():
             print('! Error selecting seller id', id)
             continue
         data = get_data(driver, id)
-        if not data: continue # If get_data() fails, go to next seller 
+        if not data: # If get_data() fails, go to next seller
+            export_data(error_msg(id))
+            continue
         print(data, '\r\n')
         export_data(data)
     
@@ -242,8 +248,9 @@ def main():
                 print('! Error selecting seller id', id)
                 continue
             data = get_data(driver, id)
-            if not data: continue # If get_data() fails, go to next seller
-            export_data(error_msg(id))
+            if not data: # If get_data() fails, go to next seller
+                export_data(error_msg(id))
+                continue
             print(data, '\r\n')
             export_data(data)
     driver.close()
