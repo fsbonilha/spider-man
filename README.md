@@ -1,4 +1,5 @@
 # Spiderman Crawler v1.0
+by fsbonilha
 
 ## What is it?
 
@@ -9,6 +10,8 @@ This program was created with the idea to automate data extraction/ingestion fro
 ### Download and install Python 3.0
 
 You can use [this link](https://www.anaconda.com/products/distribution) to download Anaconda, a Python 3 distribution that makes setup easier.
+
+*Important: Check "Add Anaconda to PATH" when installing Anaconda.*
 
 ### Install Selenium
 
