@@ -14,7 +14,9 @@ import os, csv, sys, time, codecs
 CSV_PATH = os.path.join(sys.path[0], ('data_' + datetime.today().strftime('%Y-%m-%d_T%H-%M') + '.csv'))
 PATH_FIREFOX = 'C:/Users/bonilhfe/AppData/Roaming/Mozilla/Firefox/'
 PATH_GECKODRIVER = 'C:\\geckodriver.exe'
-IMPLICIT_WAIT = 2.0 #seconds 
+IMPLICIT_WAIT = 2.0 #seconds - time selenium will wait for EVERY information, until its found
+MAPPING_BATCH_SIZE = 20 # This can't be higher than 20
+MAIN_BATCH_SIZE = 100
 
 def get_list():
     # Import seller list from csv file 
@@ -44,7 +46,7 @@ def start_driver():
 def map_seller(driver, id_list):
     # Give Permission to access sellers in lens
     # Limit of 20 sellers per request, so we will split it in batches of 20
-    batches = [id_list[i:i+20] for i in range(0,len(id_list),20)]
+    batches = [id_list[i:i+MAPPING_BATCH_SIZE] for i in range(0,len(id_list),MAPPING_BATCH_SIZE)]
     
     for batch in batches:
         
@@ -184,6 +186,14 @@ def export_data(data):
         writer.writerow(data)
     return 
 
+def error_msg(id):
+    columns = ['merchant_id', 'ba_name', 'country', 'zip_code', 'state', 'city', 'ba_line6', 'address_line1', 'address_line2',
+            'ship_phone', 'ba_line10', 'ba_line11', 'ntf_email', 'ntf_phone', 'dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone']
+    
+    info = [id, '!! ERROR SELECTING SP'] + ['']*(len(columns)-2) # Putting error msg into dict and leaving the rest empty
+    
+    return dict(zip(columns, info))
+
 def map_only():
     driver = start_driver()    
     sp_list = get_list()
@@ -211,27 +221,31 @@ def data_only():
     
     driver.close()
     return
-  
 
 def main():
     driver = start_driver()    
     sp_list = get_list()
-    map_seller(driver, sp_list)
     
     
-    # For each merchant_id in the file provided
-    for id in sp_list:
-        # Selecting specific seller in Spoofer
-        try: 
-            change_seller(driver, id)
-        except:
-            print('! Error selecting seller id', id)
-            continue
-        data = get_data(driver, id)
-        if not data: continue # If get_data() fails, go to next seller 
-        print(data, '\r\n')
-        export_data(data)
+    batches = [sp_list[i:i+MAIN_BATCH_SIZE] for i in range(0,len(sp_list),MAIN_BATCH_SIZE)]
     
+    for batch in batches:
+
+        map_seller(driver, batch)
+         
+        # For each merchant_id in the file provided
+        for id in batch:
+            # Selecting specific seller in Spoofer
+            try:
+                change_seller(driver, id)
+            except:
+                print('! Error selecting seller id', id)
+                continue
+            data = get_data(driver, id)
+            if not data: continue # If get_data() fails, go to next seller
+            export_data(error_msg(id))
+            print(data, '\r\n')
+            export_data(data)
     driver.close()
     return
     
