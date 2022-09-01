@@ -142,13 +142,13 @@ def get_data(driver, seller_id):
     data = {}
     
     # Business Address
-    # driver.get('https://www.sellercentral.amazon.dev/sw/AccountInfo/BusinessAddress/step/BusinessAddress')
-    # tag = '.a-label .ng-binding'
-    # try: 
-    #     els = driver.find_elements('css selector', tag)
-    #     info=[el.text for el in els]
-    # except: 
-    info = ['']*11
+    driver.get('https://www.sellercentral.amazon.dev/sw/AccountInfo/BusinessAddress/step/BusinessAddress')
+    tag = '.a-label .ng-binding'
+    try: 
+        els = driver.find_elements('css selector', tag)
+        info=[el.text for el in els]
+    except: 
+        info = ['']*11
     
     names=['ba_name', 'country', 'zip_code', 'state', 'city', 'ba_line6', 'address_line1', 'address_line2', 'ship_phone', 
            'ba_line10', 'ba_line11']
@@ -156,28 +156,26 @@ def get_data(driver, seller_id):
     data = dict(zip(names,info))
     
     # Phone and E-mail - Notifications Page
-    # driver.get('https://www.sellercentral.amazon.dev/notifications/preferences/contacts')
-    # tag = '.contact-email'
-    # try: email=driver.find_elements('css selector', tag)[0].text
-    #except: 
-    email=''
-    # tag = '.contact-phone'
-    # try: phone = driver.find_elements('css selector', tag)[0].text
-    #except: 
-    phone = ''
+    driver.get('https://www.sellercentral.amazon.dev/notifications/preferences/contacts')
+    tag = '.contact-email'
+    try: email=driver.find_elements('css selector', tag)[0].text
+    except: email=''
+    tag = '.contact-phone'
+    try: phone = driver.find_elements('css selector', tag)[0].text
+    except: phone = ''
     data['ntf_email'] = email
     data['ntf_phone'] = phone 
     
-    # # Shipment Address
-    # driver.get('https://www.sellercentral.amazon.dev/sbr/ref=xx_shipset_dnav_xx#settings')
-    # tag='#addressWidget td'
-    # try:
-    #     els = WebDriverWait(driver, 10).until(
-    #         EC.presence_of_all_elements_located(('css selector', tag))
-    #     )
-    #     info=[el.text for el in els]
-    # except:
-    info = ['', '', '', '']
+    # Shipment Address
+    driver.get('https://www.sellercentral.amazon.dev/sbr/ref=xx_shipset_dnav_xx#settings')
+    tag='#addressWidget td'
+    try:
+        els = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located(('css selector', tag))
+        )
+        info=[el.text for el in els]
+    except:
+        info = ['', '', '', '']
     names = ['dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone']
     new = dict(zip(names,info))
     data.update(new)
