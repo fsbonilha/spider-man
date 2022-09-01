@@ -180,13 +180,28 @@ def get_data(driver, seller_id):
     new = dict(zip(names,info))
     data.update(new)
     data['merchant_id'] = seller_id
-    
+
+    # Invoicer Company Details
+    driver.get('https://www.sellercentral.amazon.dev/invoicer-settings/index.html/')
+    tag = '#company-details b'
+    try:
+        els = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located(('css selector', tag))
+        )
+        c_details=[el.text for el in els]
+    except:
+        c_details = ['', '', '', '']
+    names = ['company_name', 'company_cnpj', 'company_ie', 'company_address']
+    new = dict(zip(names,c_details))
+    data.update(new)
+
     return data
 
 def export_data(data):
     # Take data from one merchant_id and print it to csv 
     columns = ['merchant_id', 'ba_name', 'country', 'zip_code', 'state', 'city', 'ba_line6', 'address_line1', 'address_line2',
-                'ship_phone', 'ba_line10', 'ba_line11', 'ntf_email', 'ntf_phone', 'dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone']
+                'ship_phone', 'ba_line10', 'ba_line11', 'ntf_email', 'ntf_phone', 'dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone'
+                ,'company_name', 'company_cnpj', 'company_ie', 'company_address']
     file_exists = os.path.isfile(CSV_PATH)
     
     with codecs.open(CSV_PATH, 'a', encoding='utf8') as f:
@@ -198,7 +213,8 @@ def export_data(data):
 
 def error_msg(id):
     columns = ['merchant_id', 'ba_name', 'country', 'zip_code', 'state', 'city', 'ba_line6', 'address_line1', 'address_line2',
-            'ship_phone', 'ba_line10', 'ba_line11', 'ntf_email', 'ntf_phone', 'dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone']
+                'ship_phone', 'ba_line10', 'ba_line11', 'ntf_email', 'ntf_phone', 'dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone'
+                ,'company_name', 'company_cnpj', 'company_ie', 'company_address']
     
     info = [id, '!! ERROR SELECTING SP'] + ['']*(len(columns)-2) # Putting error msg into dict and leaving the rest empty
     
