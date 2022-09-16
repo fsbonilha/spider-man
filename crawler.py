@@ -12,7 +12,7 @@ import os, csv, sys, time, codecs
 
 # User Variables 
 CSV_PATH = os.path.join(sys.path[0], ('data_' + datetime.today().strftime('%Y-%m-%d_T%H-%M') + '.csv'))
-PATH_FIREFOX = 'C:/Users/bonilhfe/AppData/Roaming/Mozilla/Firefox/'
+PATH_FIREFOX = os.path.expanduser('/AppData/Roaming/Mozilla/Firefox/')
 PATH_GECKODRIVER = 'C:\\geckodriver.exe'
 IMPLICIT_WAIT = 2.0 #seconds - time selenium will wait for EVERY information, until its found
 MAPPING_BATCH_SIZE = 20 # This can't be higher than 20
