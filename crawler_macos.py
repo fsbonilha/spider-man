@@ -15,12 +15,12 @@ import time
 import codecs
 from pathlib import Path
 import re
-from  selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 # User Variables 
 CSV_PATH = os.path.join(sys.path[0], ('data_' + datetime.today().strftime('%Y-%m-%d_T%H-%M') + '.csv'))
-PATH_FIREFOX = 'C:/Users/bonilhfe/AppData/Roaming/Mozilla/Firefox/'
-PATH_GECKODRIVER = './usr/local/bin/geckodriver'
+PATH_FIREFOX = os.path.expanduser('/AppData/Roaming/Mozilla/Firefox/')
+# PATH_GECKODRIVER = Path('C:\\geckodriver.exe')
+PATH_GECKODRIVER = os.path.expanduser('~/geckodriver')
 IMPLICIT_WAIT = 2.0 #seconds - time selenium will wait for EVERY information, until its found
 MAPPING_BATCH_SIZE = 20 # This can't be higher than 20
 MAIN_BATCH_SIZE = 100
@@ -38,21 +38,16 @@ def get_list():
 
 def start_driver():
     # Defining Firefox Driver Configs
-    # firefox_options = FirefoxOptions()
-    # firefox_options.add_argument('--log-level=3')
-    # firefox_options.add_argument('--user-data-dir={}'.format(PATH_FIREFOX))
-    # firefox_options.add_argument('--width=1600')
-    # firefox_options.add_argument('--height=900')    
+    firefox_options = FirefoxOptions()
+    firefox_options.add_argument('--log-level=3')
+    firefox_options.add_argument('--user-data-dir={}'.format(PATH_FIREFOX))
+    firefox_options.add_argument('--width=1600')
+    firefox_options.add_argument('--height=900')    
     
-    firefox_capabilities = DesiredCapabilities.FIREFOX
-    firefox_capabilities['binary'] = '/usr/bin/firefox'
-    firefox_capabilities['marionette'] = True
-    driver = webdriver.Firefox(capabilities=firefox_capabilities)
-
     # Opening Firefox instance
-    # ser = Service(PATH_GECKODRIVER)
-    # driver = webdriver.Firefox(executable_path=PATH_GECKODRIVER)
-    # driver.implicitly_wait(IMPLICIT_WAIT)
+    ser = Service(PATH_GECKODRIVER)
+    driver = webdriver.Chrome(options=firefox_options, service = ser)
+    driver.implicitly_wait(IMPLICIT_WAIT)
     
     driver.get('https://sclens.corp.amazon.com/')
     input('Logged In? Press enter to continue...\r\n')
@@ -191,7 +186,7 @@ def get_data(driver, seller_id):
     data.update(new)
     data['merchant_id'] = seller_id
 
-    # Invoicer Company Details
+        # Invoicer Company Details
     driver.get('https://www.sellercentral.amazon.dev/invoicer-settings/index.html/')
     tag = '#company-details b'
     try:
@@ -208,6 +203,7 @@ def get_data(driver, seller_id):
     # Add date to load into the cluster
     data['dw_load_date'] = datetime.today().strftime('%Y-%m-%d')
 
+    
     return data
 
 def clean_data(data):
@@ -231,7 +227,7 @@ def export_data(data):
     # Take data from one merchant_id and print it to csv 
     columns = COLUMNS
     file_exists = os.path.isfile(CSV_PATH)
-    
+
     with codecs.open(CSV_PATH, 'a', encoding='utf8') as f:
         writer = csv.DictWriter(f, delimiter=',', lineterminator='\n', fieldnames=columns)
         if not file_exists:

@@ -8,15 +8,24 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 from datetime import datetime
-import os, csv, sys, time, codecs
+import os
+import csv
+import sys
+import time
+import codecs
+from pathlib import Path
+import re
 
 # User Variables 
-CSV_PATH = os.path.join(sys.path[0], ('data_' + datetime.today().strftime('%Y-%m-%d_T%H-%M') + '.csv'))
+CSV_PATH = os.path.join(sys.path[0], ('data_' + datetime.today().strftime('%Y-%m-%d_T%H-%M') + '.txt'))
 PATH_FIREFOX = os.path.expanduser('/AppData/Roaming/Mozilla/Firefox/')
-PATH_GECKODRIVER = 'C:\\geckodriver.exe'
+PATH_GECKODRIVER = Path('C:\\geckodriver.exe')
 IMPLICIT_WAIT = 2.0 #seconds - time selenium will wait for EVERY information, until its found
 MAPPING_BATCH_SIZE = 20 # This can't be higher than 20
 MAIN_BATCH_SIZE = 100
+COLUMNS = ['merchant_id', 'ba_name', 'country', 'zip_code', 'state', 'city', 'ba_line6', 'address_line1', 'address_line2',
+            'ship_phone', 'ba_line10', 'ba_line11', 'ntf_email', 'ntf_phone', 'dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone'
+            ,'company_name', 'company_cnpj', 'company_ie', 'company_address', 'dw_load_date']
 
 def get_list():
     # Import seller list from csv file 
@@ -80,11 +89,12 @@ def map_seller(driver, id_list):
             els = driver.find_elements('css selector', css_tag)
             el = els[row]
             actions.click(on_element=el)
-            actions.send_keys('BR')
-            actions.perform()
-            time.sleep(.15)
+            # actions.send_keys('BR')
+            # actions.perform()
+            # time.sleep(.15)
             
             actions.send_keys(Keys.DOWN)
+            actions.send_keys('b')
             actions.send_keys(Keys.RETURN)
             actions.perform()
             
@@ -188,27 +198,43 @@ def get_data(driver, seller_id):
     names = ['company_name', 'company_cnpj', 'company_ie', 'company_address']
     new = dict(zip(names,c_details))
     data.update(new)
+
+    # Add date to load into the cluster
+    data['dw_load_date'] = datetime.today().strftime('%Y-%m-%d')
     
     return data
 
+def clean_data(data):
+    #Remove newlines and tabs
+    base = data
+    for col in base:
+        str = base[col]
+        str = re.sub(r'[\r\n\t]+', '', str)
+        
+        # Truncate string to max 4k characters 
+        if len(str) > 4000:
+            str = str[:3999]
+
+        # Replace string in original dataset
+        base[col] = str 
+    
+    # Return clean dataset
+    return base
+
 def export_data(data):
     # Take data from one merchant_id and print it to csv 
-    columns = ['merchant_id', 'ba_name', 'country', 'zip_code', 'state', 'city', 'ba_line6', 'address_line1', 'address_line2',
-                'ship_phone', 'ba_line10', 'ba_line11', 'ntf_email', 'ntf_phone', 'dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone'
-                ,'company_name', 'company_cnpj', 'company_ie', 'company_address']
+    columns = COLUMNS
     file_exists = os.path.isfile(CSV_PATH)
     
     with codecs.open(CSV_PATH, 'a', encoding='utf8') as f:
-        writer = csv.DictWriter(f, delimiter=',', lineterminator='\n', fieldnames=columns)
-        if not file_exists:
-            writer.writeheader()  # file doesn't exist yet, write a header
+        writer = csv.DictWriter(f, delimiter='\t', lineterminator='\n', fieldnames=columns)
+        # if not file_exists:
+            # writer.writeheader()  # file doesn't exist yet, write a header
         writer.writerow(data)
     return 
 
 def error_msg(id):
-    columns = ['merchant_id', 'ba_name', 'country', 'zip_code', 'state', 'city', 'ba_line6', 'address_line1', 'address_line2',
-            'ship_phone', 'ba_line10', 'ba_line11', 'ntf_email', 'ntf_phone', 'dship_name', 'dship_placeholder', 'dship_address', 'dship_time_zone'
-            ,'company_name', 'company_cnpj', 'company_ie', 'company_address']
+    columns = COLUMNS
     
     info = [id, '!! ERROR SELECTING SP'] + ['']*(len(columns)-2) # Putting error msg into dict and leaving the rest empty
     
@@ -238,6 +264,7 @@ def data_only():
         if not data: # If get_data() fails, go to next seller
             export_data(error_msg(id))
             continue
+        data = clean_data(data)
         print(data, '\r\n')
         export_data(data)
     
@@ -267,6 +294,7 @@ def main():
             if not data: # If get_data() fails, go to next seller
                 export_data(error_msg(id))
                 continue
+            data = clean_data(data)
             print(data, '\r\n')
             export_data(data)
     driver.close()
