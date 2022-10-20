@@ -1,4 +1,4 @@
-# Spiderman Crawler v1.0
+# Spiderman Crawler v2.0
 by fsbonilha
 
 ## What is it?
